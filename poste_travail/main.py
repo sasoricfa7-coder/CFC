@@ -1,4 +1,5 @@
 import sys
+import time as tm
 
 simple = "\033[0m"
 rouge = "\033[1m\033[91m"
@@ -88,10 +89,64 @@ class COFFRE_FORT_CFC :
 
         return resultat
 
+def afficher() :
+    print("1 : 🔒 Créer un verrou")
+    print("2 : ⏳ Prolonger un verrou")
+    print("3 : 🔓 Déverrouiller")
+    print("4 : 📋 Voir mes verrous")
+    print("5 : 🚪 Quitter l'application.")
+
+def option_1 () :
+    global client
+    p = demande_proprietaire()
+    m = input("Entrez le montant : ")
+    d = input("Entrez la durée : (Minimum une semaine)")
+    client.verrouiller(p, float(m), float(d), tm.time())   
+
+def option_2() :
+    global client
+    id_ = demande_id()
+    p = demande_proprietaire()
+    sp = input("Entrez la durée supplémentaire : (Minimum une semaine) ")
+    client.prolonger_verrou(id_, p, float(sp))
+
+def demande_proprietaire() : # ya une répétition de plus de 2 fois on en fais une fonction
+    return input("Entrez votre nom : ")
+def demande_id() :
+    return int(input("Entrez votre id : "))
+
+def option_3() :
+    global client
+    id_ = demande_id()
+    p = demande_proprietaire()
+    client.deverrouiller(id_, p, tm.time())
+    
+def option_4() :
+    p = demande_proprietaire()
+    resultat = client.obtenir_verrou(p)
+
+    for i , info in resultat.items() :
+        print(i, info)
 
 def main() :
-    pass
+    while True :
+        afficher()
+        choix = input("choix : ")
+        match choix :
+            case "1" : 
+                option_1()
+            case "2" :
+                option_2()
+            case "3" : 
+                option_3()
+            case "4" :
+                option_4()
+            case "5" : print("Fermeture...")
+                arret()
+
+            case _ : print("Erreur de saisi.")
     
 
 if __name__=="__main__" :
+    client = COFFRE_FORT_CFC("SASORI")
     main()
