@@ -27,36 +27,36 @@ class COFFRE_FORT_CFC :
     def verrouiller(self, p, m, d, t) : # p : propriétaire, m : montant, d = durée en seconde, t : temps actu
         if m <= 0 :
             print(f"{rouge} Montant nul {simple}")
-            arret()
-        if d < DURE_MIN_VERROU :
+            return
+        if d < self.DURE_MIN_VERROU :
             print(f"{rouge} Durée trop courte{simple}")
-            arret()
+            return
     
         nouveau_verrou = VERROU(p, m, d + t)
         id_verrou = self.prochain_id_verrou
         self.verrous[id_verrou] = nouveau_verrou
         self.prochain_id_verrou += 1
 
-        print(f"{vert} SUCCES  {simple}")
+        print(f"{vert} SUCCES  : id = {id_verrou} {simple}")
         print("Aucun frais prélévé.")
         return id_verrou
 
     def prolonger_verrou(self, id_verrou, p, sp) : # p : propriétaire, sp : seconde supplémentaire
         if id_verrou not in self.verrous.keys() :
             print(f"{rouge} KeyError {simple}")
-            arret()
+            return
 
         if sp < 604_800 : # C'est un choix assumer : prolonger de 1 seconde ne sert pas il faut y penser
             print(f"{rouge} Le prolongement minimal est d'une semaine.{simple}")
-            arret()
+            return
 
         if self.verrous[id_verrou].proprietaire != p :
             print(f"{rouge} Mauvais propriétaire {simple}")
-            arret()
+            return
 
         if not self.verrous[id_verrou].retire :
             print(f"{rouge} Somme déja retirée {simple}")
-            arret()
+            return
 
         self.verrous[id_verrou].temps_deverrouillage += sp
         print(f"{vert} SUCCES {simple}")
@@ -65,16 +65,16 @@ class COFFRE_FORT_CFC :
     def deverrouiller(self, id_verrou, p, t) : # p : propriétaire , t : temps actu
         if id_verrou not in self.verrous.keys() :
             print(f"{rouge} KeyError {simple}")
-            arret()
+            return
         if self.verrous[id_verrou].proprietaire != p :
             print(f"{rouge} Mauvais propriétaire {simple}")
-            arret()
-        if not self.verrous[id_verrou].retire :
+            return
+        if self.verrous[id_verrou].retire :
             print(f"{rouge} Somme déja retirée {simple}")
             arret()
         if self.verrous[id_verrou].temps_deverrouillage > t :
             print(f"{rouge} Temps de déverouillage pas atteint {simple}")
-            arret()
+            return
 
         frais = self.verrous[id_verrou].montant * POINTS_BASES_FRAIS // 10_000
         print(f"{vert} Retrais effectué avec succès {simple}")
@@ -90,6 +90,7 @@ class COFFRE_FORT_CFC :
         return resultat
 
 def afficher() :
+    print("\n=========MENU=========")
     print("1 : 🔒 Créer un verrou")
     print("2 : ⏳ Prolonger un verrou")
     print("3 : 🔓 Déverrouiller")
@@ -98,17 +99,27 @@ def afficher() :
 
 def option_1 () :
     global client
-    p = demande_proprietaire()
-    m = input("Entrez le montant : ")
-    d = input("Entrez la durée : (Minimum une semaine)")
-    client.verrouiller(p, float(m), float(d), tm.time())   
+    try : 
+        p = demande_proprietaire()
+        m = input("Entrez le montant : ")
+        d = input("Entrez la durée : (Minimum une semaine) ")
+        client.verrouiller(p, int(m), int(d), int(tm.time()))
+
+    except Exception as e : 
+        print(e)
+        print("\n\n")
 
 def option_2() :
     global client
-    id_ = demande_id()
-    p = demande_proprietaire()
-    sp = input("Entrez la durée supplémentaire : (Minimum une semaine) ")
-    client.prolonger_verrou(id_, p, float(sp))
+    try : 
+        id_ = demande_id()
+        p = demande_proprietaire()
+        sp = input("Entrez la durée supplémentaire : (Minimum une semaine) ")
+        client.prolonger_verrou(id_, p, int(sp))
+
+    except Exception as e :
+        print(e)
+        print("\n\n")
 
 def demande_proprietaire() : # ya une répétition de plus de 2 fois on en fais une fonction
     return input("Entrez votre nom : ")
@@ -117,16 +128,27 @@ def demande_id() :
 
 def option_3() :
     global client
-    id_ = demande_id()
-    p = demande_proprietaire()
-    client.deverrouiller(id_, p, tm.time())
+    try :
+        id_ = demande_id()
+        p = demande_proprietaire()
+        client.deverrouiller(id_, p, tm.time())
+    except Exception as e :
+        print(e)
+        print("\n\n")
     
 def option_4() :
-    p = demande_proprietaire()
-    resultat = client.obtenir_verrou(p)
+    try : 
+        p = demande_proprietaire()
+        resultat = client.obtenir_verrou(p)
 
-    for i , info in resultat.items() :
-        print(i, info)
+        if resultat :
+            for i , info in resultat.items() :
+                print(i, info)
+        else : 
+            print("Aucun résultat.")
+    except Exception as e :
+        print(e)
+        print("\n\n")
 
 def main() :
     while True :
@@ -141,7 +163,8 @@ def main() :
                 option_3()
             case "4" :
                 option_4()
-            case "5" : print("Fermeture...")
+            case "5" : 
+                print("Fermeture...")
                 arret()
 
             case _ : print("Erreur de saisi.")
