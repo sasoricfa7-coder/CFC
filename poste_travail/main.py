@@ -74,15 +74,16 @@ class COFFRE_FORT_CFC :
         if self.verrous[id_verrou].proprietaire != p :
             print(f"{rouge} Mauvais propriétaire {simple}")
             return
-        if self.verrous[id_verrou].retire :
+        if self.verrous[id_verrou].retire == True :
             print(f"{rouge} Somme déja retirée {simple}")
-            arret()
+            return
         if self.verrous[id_verrou].temps_deverrouillage > t :
             print(f"{rouge} Temps de déverouillage pas atteint {simple}")
             return
 
-        frais = self.verrous[id_verrou].montant * POINTS_BASES_FRAIS // 10_000
-        print(f"{vert} Retrais effectué avec succès {simple}")
+        frais = self.verrous[id_verrou].montant * self.POINTS_BASES_FRAIS // 10_000
+        self.verrous[id_verrou].retire = True
+        print(f"{vert} Retrait effectué avec succès {simple}")
         print(f"Frais : {frais}")
         return {"montant_recu" : self.verrous[id_verrou].montant - frais , "frais" : frais}
 
@@ -90,7 +91,7 @@ class COFFRE_FORT_CFC :
         global semaine
         resultat = {}
         for i in self.verrous.keys() :
-            if self.verrous[i].proprietaire == p :
+            if self.verrous[i].proprietaire == p and self.verrous[i].retire == False :
                 temporaire = {}
                 temporaire["montant"] = self.verrous[i].montant
                 temporaire["nombre_semaine"] = (self.verrous[i].nombre_semaine)
@@ -114,7 +115,7 @@ def option_1 () :
         p = demande_proprietaire()
         m = input("Entrez le montant : ")
         d = input("Pour la durée entrée le nombre de semaine : ")
-        client.verrouiller(p, int(m), int(d) * semaine, int(tm.time()))
+        client.verrouiller(p, int(m), int(d) * semaine, int(tm.time())) # je remplace temporairement tm.time() par 0
 
     except Exception as e : 
         print(e)
