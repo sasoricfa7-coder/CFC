@@ -1,3 +1,4 @@
+import os
 import sys
 import time as tm
 
@@ -9,10 +10,11 @@ def arret() :
     sys.exit(1)
 
 class VERROU :
-    def __init__(self, proprietaire, montant, temps_deverrouillage) :
+    def __init__(self, proprietaire, montant, temps_deverrouillage, nombre_semaine) :
         self.proprietaire = proprietaire
         self.montant = montant
         self.temps_deverrouillage = temps_deverrouillage
+        self.nombre_semaine = nombre_semaine
         self.retire = False
 
 class COFFRE_FORT_CFC :
@@ -25,6 +27,7 @@ class COFFRE_FORT_CFC :
         self.prochain_id_verrou = 0
 
     def verrouiller(self, p, m, d, t) : # p : propriétaire, m : montant, d = durée en seconde, t : temps actu
+        global semaine
         if m <= 0 :
             print(f"{rouge} Montant nul {simple}")
             return
@@ -32,7 +35,7 @@ class COFFRE_FORT_CFC :
             print(f"{rouge} Durée trop courte{simple}")
             return
     
-        nouveau_verrou = VERROU(p, m, d + t)
+        nouveau_verrou = VERROU(p, m, d + t, d // semaine)
         id_verrou = self.prochain_id_verrou
         self.verrous[id_verrou] = nouveau_verrou
         self.prochain_id_verrou += 1
@@ -42,11 +45,12 @@ class COFFRE_FORT_CFC :
         return id_verrou
 
     def prolonger_verrou(self, id_verrou, p, sp) : # p : propriétaire, sp : seconde supplémentaire
+        global semaine
         if id_verrou not in self.verrous.keys() :
             print(f"{rouge} KeyError {simple}")
             return
 
-        if sp < 604_800 : # C'est un choix assumer : prolonger de 1 seconde ne sert pas il faut y penser
+        if sp < semaine : # C'est un choix assumer : prolonger de 1 seconde ne sert pas il faut y penser
             print(f"{rouge} Le prolongement minimal est d'une semaine.{simple}")
             return
 
@@ -54,11 +58,12 @@ class COFFRE_FORT_CFC :
             print(f"{rouge} Mauvais propriétaire {simple}")
             return
 
-        if not self.verrous[id_verrou].retire :
+        if self.verrous[id_verrou].retire != False :
             print(f"{rouge} Somme déja retirée {simple}")
             return
 
         self.verrous[id_verrou].temps_deverrouillage += sp
+        self.verrous[id_verrou].nombre_semaine += (sp//semaine)
         print(f"{vert} SUCCES {simple}")
         print("Aucun frais prélévé.")
 
@@ -82,10 +87,15 @@ class COFFRE_FORT_CFC :
         return {"montant_recu" : self.verrous[id_verrou].montant - frais , "frais" : frais}
 
     def obtenir_verrou(self, p) : # p : propriétaire
+        global semaine
         resultat = {}
         for i in self.verrous.keys() :
             if self.verrous[i].proprietaire == p :
-                resultat[i] = self.verrous[i]
+                temporaire = {}
+                temporaire["montant"] = self.verrous[i].montant
+                temporaire["nombre_semaine"] = (self.verrous[i].nombre_semaine)
+                temporaire["retirée"] = self.verrous[i].retire
+                resultat[i] = temporaire
 
         return resultat
 
@@ -95,27 +105,28 @@ def afficher() :
     print("2 : ⏳ Prolonger un verrou")
     print("3 : 🔓 Déverrouiller")
     print("4 : 📋 Voir mes verrous")
-    print("5 : 🚪 Quitter l'application.")
+    print("5 : Nettoyer")
+    print("6 : 🚪 Quitter l'application.")
 
 def option_1 () :
-    global client
+    global client, semaine
     try : 
         p = demande_proprietaire()
         m = input("Entrez le montant : ")
-        d = input("Entrez la durée : (Minimum une semaine) ")
-        client.verrouiller(p, int(m), int(d), int(tm.time()))
+        d = input("Pour la durée entrée le nombre de semaine : ")
+        client.verrouiller(p, int(m), int(d) * semaine, int(tm.time()))
 
     except Exception as e : 
         print(e)
         print("\n\n")
 
 def option_2() :
-    global client
+    global client, semaine
     try : 
         id_ = demande_id()
         p = demande_proprietaire()
-        sp = input("Entrez la durée supplémentaire : (Minimum une semaine) ")
-        client.prolonger_verrou(id_, p, int(sp))
+        sp = input("Entrez le nombre de semaine : ")
+        client.prolonger_verrou(id_, p, int(sp) * semaine)
 
     except Exception as e :
         print(e)
@@ -142,8 +153,10 @@ def option_4() :
         resultat = client.obtenir_verrou(p)
 
         if resultat :
-            for i , info in resultat.items() :
-                print(i, info)
+            for i, info in resultat.items() :
+                print("\n======INFO======")
+                print(f"ID : {i}")
+                print(f"Montant : {info['montant']}, Temps_en_semaine : {info['nombre_semaine']}, Retirée : {info['retirée']}")
         else : 
             print("Aucun résultat.")
     except Exception as e :
@@ -164,6 +177,8 @@ def main() :
             case "4" :
                 option_4()
             case "5" : 
+                os.system("clear")
+            case "6" : 
                 print("Fermeture...")
                 arret()
 
@@ -171,5 +186,6 @@ def main() :
     
 
 if __name__=="__main__" :
+    semaine = 604_800
     client = COFFRE_FORT_CFC("SASORI")
     main()
